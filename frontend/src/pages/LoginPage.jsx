@@ -1,15 +1,25 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Input from '../components/Input'
+import useAuthStore from '../store/authStore'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const { loginAction, isLoading } = useAuthStore()
+  const navigate = useNavigate()
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    console.log(email, password)
+    setError('')
+    try {
+      await loginAction(email, password)
+      navigate('/dashboard')
+    } catch {
+      setError('Неверный email или пароль')
+    }
   }
 
   return (
@@ -37,7 +47,14 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
           />
-          <Button type="submit">Войти</Button>
+          {error && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+          <Button type="submit" loading={isLoading}>
+            Войти
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
