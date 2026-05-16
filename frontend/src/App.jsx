@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import PrivateRoute from './components/PrivateRoute'
+import AccountsPage from './pages/AccountsPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -38,7 +39,7 @@ function App() {
           path="/accounts"
           element={
             <PrivateRoute>
-              <ComingSoon page="Счета" />
+              <AccountsPage />
             </PrivateRoute>
           }
         />
