@@ -12,13 +12,37 @@ client.interceptors.request.use((config) => {
   return config
 })
 
+function extractUserMessage(error) {
+  if (!error.response) {
+    return 'Нет соединения с сервером'
+  }
+
+  const { status, data } = error.response
+
+  if (status === 422) {
+    if (Array.isArray(data?.detail)) {
+      return data.detail.map((e) => e.msg.replace('Value error, ', '')).join('; ')
+    }
+    return data?.detail ?? 'Ошибка валидации данных'
+  }
+
+  if (status === 500) {
+    return 'Ошибка сервера, попробуйте позже'
+  }
+
+  return data?.detail ?? 'Произошла ошибка'
+}
+
 client.interceptors.response.use(
   (response) => response,
   (error) => {
+    error.userMessage = extractUserMessage(error)
+
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
+
     return Promise.reject(error)
   },
 )

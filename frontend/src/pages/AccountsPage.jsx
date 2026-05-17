@@ -7,19 +7,9 @@ import {
 } from '../api/accounts'
 import AccountForm from '../components/AccountForm'
 import Modal from '../components/Modal'
+import { formatAccountType, formatCurrency } from '../utils/formatters'
 
-const ACCOUNT_META = {
-  cash: { label: 'Наличные', icon: '💵' },
-  card: { label: 'Карта', icon: '💳' },
-  savings: { label: 'Накопления', icon: '🏦' },
-}
-
-function formatBalance(amount) {
-  return Number(amount).toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
+const ACCOUNT_ICON = { cash: '💵', card: '💳', savings: '🏦' }
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState([])
@@ -137,11 +127,6 @@ export default function AccountsPage() {
       {!loading && !error && accounts.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {accounts.map((account) => {
-            const meta = ACCOUNT_META[account.account_type] ?? {
-              label: account.account_type,
-              icon: '💼',
-            }
-
             return (
               <article
                 key={account.id}
@@ -153,8 +138,8 @@ export default function AccountsPage() {
                       {account.name}
                     </h2>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
-                      <span aria-hidden="true">{meta.icon}</span>
-                      {meta.label}
+                      <span aria-hidden="true">{ACCOUNT_ICON[account.account_type] ?? '💼'}</span>
+                      {formatAccountType(account.account_type)}
                     </div>
                   </div>
                   <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
@@ -164,7 +149,7 @@ export default function AccountsPage() {
 
                 <div className="mt-6">
                   <p className="text-3xl font-bold text-gray-900">
-                    {formatBalance(account.balance)}
+                    {formatCurrency(account.balance, account.currency)}
                   </p>
                   <p className="mt-1 text-sm text-gray-400">{account.currency}</p>
                 </div>

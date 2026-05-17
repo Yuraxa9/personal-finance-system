@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary'
 import PrivateRoute from './components/PrivateRoute'
 import AccountsPage from './pages/AccountsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
@@ -25,6 +26,7 @@ function App() {
   }, [loadUser])
 
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -81,6 +83,7 @@ function App() {
         />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

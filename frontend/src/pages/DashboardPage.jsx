@@ -4,15 +4,10 @@ import { getAccounts } from '../api/accounts'
 import { getCategories } from '../api/categories'
 import { getAnalytics, getTransactions } from '../api/transactions'
 import StatCard from '../components/StatCard'
+import { formatAccountType, formatCurrency, formatDateShort, formatTransactionType } from '../utils/formatters'
 
-const ACCOUNT_TYPE_LABEL = { cash: 'Наличные', card: 'Карта', savings: 'Накопления' }
-const TX_TYPE_LABEL = { income: 'Доход', expense: 'Расход', transfer: 'Перевод' }
 const TX_TYPE_COLOR = { income: 'text-green-600', expense: 'text-red-500', transfer: 'text-blue-500' }
 const FALLBACK_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6']
-
-function fmt(amount) {
-  return Number(amount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })
-}
 
 function thisMonthRange() {
   const now = new Date()
@@ -68,7 +63,6 @@ export default function DashboardPage() {
   const income = analytics ? Number(analytics.summary.total_income) : 0
   const expense = analytics ? Number(analytics.summary.total_expense) : 0
 
-  // Top-5 expense categories for mini pie chart
   const pieData = (analytics?.by_category ?? [])
     .filter((item) => {
       if (!item.category_id) return false
@@ -87,15 +81,13 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-gray-900">Дашборд</h1>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard title="Общий баланс" value={fmt(totalBalance)} icon="💰" color="blue" />
-        <StatCard title="Доходы за месяц" value={fmt(income)} icon="📈" color="green" />
-        <StatCard title="Расходы за месяц" value={fmt(expense)} icon="📉" color="red" />
+        <StatCard title="Общий баланс" value={formatCurrency(totalBalance)} icon="💰" color="blue" />
+        <StatCard title="Доходы за месяц" value={formatCurrency(income)} icon="📈" color="green" />
+        <StatCard title="Расходы за месяц" value={formatCurrency(expense)} icon="📉" color="red" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Accounts */}
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-800">Мои счета</h2>
           {accounts.length === 0 ? (
@@ -106,16 +98,15 @@ export default function DashboardPage() {
                 <li key={a.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
                   <div>
                     <p className="font-medium text-gray-800">{a.name}</p>
-                    <p className="text-xs text-gray-400">{ACCOUNT_TYPE_LABEL[a.account_type] ?? a.account_type}</p>
+                    <p className="text-xs text-gray-400">{formatAccountType(a.account_type)}</p>
                   </div>
-                  <span className="font-semibold text-gray-900">{fmt(a.balance)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(a.balance, a.currency)}</span>
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        {/* Recent transactions */}
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-800">Последние транзакции</h2>
           {transactions.length === 0 ? (
@@ -126,14 +117,12 @@ export default function DashboardPage() {
                 <li key={tx.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-800">
-                      {tx.description || TX_TYPE_LABEL[tx.transaction_type]}
+                      {tx.description || formatTransactionType(tx.transaction_type)}
                     </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(tx.date).toLocaleDateString('ru-RU')}
-                    </p>
+                    <p className="text-xs text-gray-400">{formatDateShort(tx.date)}</p>
                   </div>
                   <span className={`font-semibold ${TX_TYPE_COLOR[tx.transaction_type]}`}>
-                    {tx.transaction_type === 'income' ? '+' : '−'}{fmt(tx.amount)}
+                    {tx.transaction_type === 'income' ? '+' : '−'}{formatCurrency(tx.amount)}
                   </span>
                 </li>
               ))}
@@ -142,7 +131,6 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      {/* Mini pie chart — top-5 expense categories this month */}
       {pieData.length > 0 && (
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-2 font-semibold text-gray-800">Топ-5 категорий расходов за месяц</h2>
@@ -153,10 +141,10 @@ export default function DashboardPage() {
                   <Cell key={i} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => [fmt(v), 'Сумма']} />
+              <Tooltip formatter={(v) => [formatCurrency(v), 'Сумма']} />
               <Legend
                 formatter={(value, entry) => (
-                  <span className="text-xs text-gray-700">{value}: {fmt(entry.payload.value)}</span>
+                  <span className="text-xs text-gray-700">{value}: {formatCurrency(entry.payload.value)}</span>
                 )}
               />
             </PieChart>

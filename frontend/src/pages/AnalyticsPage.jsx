@@ -16,10 +16,7 @@ import { getCategories } from '../api/categories'
 import { getAnalytics } from '../api/transactions'
 import LoadingSpinner from '../components/LoadingSpinner'
 import StatCard from '../components/StatCard'
-
-function fmt(v) {
-  return Number(v).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })
-}
+import { formatCurrency } from '../utils/formatters'
 
 function getWeekRange() {
   const now = new Date()
@@ -68,7 +65,7 @@ const PERIOD_TABS = [
 
 const FALLBACK_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16']
 
-const tooltipFmt = (value) => [fmt(value), 'Сумма']
+const tooltipFmt = (value) => [formatCurrency(value), 'Сумма']
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState('month')
@@ -178,9 +175,9 @@ export default function AnalyticsPage() {
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard title="Доходы за период" value={fmt(income)} icon="📈" color="green" />
-            <StatCard title="Расходы за период" value={fmt(expense)} icon="📉" color="red" />
-            <StatCard title="Баланс" value={fmt(balance)} icon="💰" color={balance >= 0 ? 'blue' : 'red'} />
+            <StatCard title="Доходы за период" value={formatCurrency(income)} icon="📈" color="green" />
+            <StatCard title="Расходы за период" value={formatCurrency(expense)} icon="📉" color="red" />
+            <StatCard title="Баланс" value={formatCurrency(balance)} icon="💰" color={balance >= 0 ? 'blue' : 'red'} />
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

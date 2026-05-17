@@ -1,10 +1,12 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
+from app.models.category import Category
 from app.models.transaction import TransactionType
 from app.models.user import User
 from app.schemas.analytics import AnalyticsResponse
@@ -17,6 +19,36 @@ from app.schemas.transaction import (
 from app.services import transaction as transaction_service
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
+
+async def _validate_transaction_data(data: TransactionCreate | TransactionUpdate, user_id: uuid.UUID, db: AsyncSession) -> None:
+    if hasattr(data, 'amount') and data.amount is not None and data.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Сумма должна быть больше нуля",
+        )
+
+    if hasattr(data, 'date') and data.date is not None:
+        max_future = datetime.now(timezone.utc) + timedelta(days=1)
+        tx_date = data.date if data.date.tzinfo else data.date.replace(tzinfo=timezone.utc)
+        if tx_date > max_future:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Дата не может быть в будущем более чем на 1 день",
+            )
+
+    if hasattr(data, 'category_id') and data.category_id is not None:
+        result = await db.execute(
+            select(Category).where(
+                Category.id == data.category_id,
+                or_(Category.user_id == user_id, Category.is_default.is_(True)),
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Категория не найдена или не принадлежит пользователю",
+            )
 
 
 @router.get("/analytics", response_model=AnalyticsResponse)
@@ -55,6 +87,7 @@ async def create_transaction(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _validate_transaction_data(data, current_user.id, db)
     return await transaction_service.create_transaction(db, current_user.id, data)
 
 
@@ -77,6 +110,7 @@ async def update_transaction(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _validate_transaction_data(data, current_user.id, db)
     transaction = await transaction_service.update_transaction(
         db, transaction_id, current_user.id, data
     )

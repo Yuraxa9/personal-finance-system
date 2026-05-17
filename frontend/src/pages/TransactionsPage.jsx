@@ -10,24 +10,16 @@ import {
 import Button from '../components/Button'
 import Modal from '../components/Modal'
 import TransactionForm from '../components/TransactionForm'
+import { formatCurrency, formatDateTime, formatTransactionType } from '../utils/formatters'
 
 const PAGE_SIZE = 20
 
-const TX_TYPE_LABEL = { income: 'Доход', expense: 'Расход', transfer: 'Перевод' }
 const TX_TYPE_COLOR = {
   income: 'text-green-600',
   expense: 'text-red-500',
   transfer: 'text-blue-500',
 }
 const TX_TYPE_SIGN = { income: '+', expense: '−', transfer: '↔' }
-
-function fmt(amount) {
-  return Number(amount).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function fmtDate(iso) {
-  return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 const EMPTY_FILTERS = { account_id: '', transaction_type: '', date_from: '', date_to: '' }
 
@@ -192,10 +184,10 @@ export default function TransactionsPage() {
                     const acc = accountMap[tx.account_id]
                     return (
                       <tr key={tx.id} className="transition hover:bg-gray-50">
-                        <td className="whitespace-nowrap px-4 py-3 text-gray-500">{fmtDate(tx.date)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-gray-500">{formatDateTime(tx.date)}</td>
                         <td className="px-4 py-3">
                           <span className="font-medium text-gray-800">
-                            {tx.description || TX_TYPE_LABEL[tx.transaction_type]}
+                            {tx.description || formatTransactionType(tx.transaction_type)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -215,7 +207,7 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-4 py-3 text-gray-600">{acc?.name ?? '—'}</td>
                         <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold ${TX_TYPE_COLOR[tx.transaction_type]}`}>
-                          {TX_TYPE_SIGN[tx.transaction_type]}{fmt(tx.amount)}
+                          {TX_TYPE_SIGN[tx.transaction_type]}{formatCurrency(tx.amount)}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
