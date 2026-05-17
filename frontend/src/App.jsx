@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import PrivateRoute from './components/PrivateRoute'
 import AccountsPage from './pages/AccountsPage'
+import CategoriesPage from './pages/CategoriesPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -55,7 +56,7 @@ function App() {
           path="/categories"
           element={
             <PrivateRoute>
-              <ComingSoon page="Категории" />
+              <CategoriesPage />
             </PrivateRoute>
           }
         />
