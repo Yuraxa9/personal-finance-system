@@ -206,7 +206,7 @@ export default function AnalyticsPage() {
                     <Tooltip formatter={tooltipFmt} />
                     <Legend
                       formatter={(value, entry) => (
-                        <span className="text-xs text-gray-700">{value}: {fmt(entry.payload.value)}</span>
+                        <span className="text-xs text-gray-700">{value}: {formatCurrency(entry.payload.value)}</span>
                       )}
                     />
                   </PieChart>
