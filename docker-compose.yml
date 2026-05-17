@@ -5,23 +5,37 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/finance
+      SECRET_KEY: super-secret-key-change-in-production
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      DEBUG: "false"
     depends_on:
       db:
         condition: service_healthy
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
-      - ./backend/alembic:/app/alembic
+      - ./backend:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   frontend:
     build: ./frontend
     ports:
       - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
     depends_on:
       - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
   db:
     image: postgres:16-alpine
