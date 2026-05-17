@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { getAccounts } from '../api/accounts'
+import { getCategories } from '../api/categories'
 import { getAnalytics, getTransactions } from '../api/transactions'
 import StatCard from '../components/StatCard'
 
 const ACCOUNT_TYPE_LABEL = { cash: 'Наличные', card: 'Карта', savings: 'Накопления' }
 const TX_TYPE_LABEL = { income: 'Доход', expense: 'Расход', transfer: 'Перевод' }
 const TX_TYPE_COLOR = { income: 'text-green-600', expense: 'text-red-500', transfer: 'text-blue-500' }
+const FALLBACK_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6']
 
 function fmt(amount) {
   return Number(amount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })
@@ -22,6 +25,7 @@ export default function DashboardPage() {
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
   const [analytics, setAnalytics] = useState(null)
+  const [categoryMap, setCategoryMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -29,14 +33,16 @@ export default function DashboardPage() {
     async function load() {
       try {
         const { from, to } = thisMonthRange()
-        const [accRes, txRes, analyticsRes] = await Promise.all([
+        const [accRes, txRes, analyticsRes, catRes] = await Promise.all([
           getAccounts(),
-          getTransactions({ limit: 5 }),
+          getTransactions({}),
           getAnalytics(from, to),
+          getCategories(),
         ])
         setAccounts(accRes.data)
         setTransactions(txRes.data)
         setAnalytics(analyticsRes.data)
+        setCategoryMap(Object.fromEntries(catRes.data.map((c) => [c.id, c])))
       } catch {
         setError('Не удалось загрузить данные')
       } finally {
@@ -55,14 +61,27 @@ export default function DashboardPage() {
   }
 
   if (error) {
-    return (
-      <div className="rounded-xl bg-red-50 p-4 text-red-600">{error}</div>
-    )
+    return <div className="rounded-xl bg-red-50 p-4 text-red-600">{error}</div>
   }
 
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0)
   const income = analytics ? Number(analytics.summary.total_income) : 0
   const expense = analytics ? Number(analytics.summary.total_expense) : 0
+
+  // Top-5 expense categories for mini pie chart
+  const pieData = (analytics?.by_category ?? [])
+    .filter((item) => {
+      if (!item.category_id) return false
+      return categoryMap[item.category_id]?.category_type === 'expense'
+    })
+    .sort((a, b) => Number(b.total_amount) - Number(a.total_amount))
+    .slice(0, 5)
+    .map((item, i) => ({
+      name: item.category_name,
+      value: Number(item.total_amount),
+      color: categoryMap[item.category_id]?.color ?? FALLBACK_COLORS[i],
+    }))
+    .filter((d) => d.value > 0)
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,6 +141,28 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
+
+      {/* Mini pie chart — top-5 expense categories this month */}
+      {pieData.length > 0 && (
+        <section className="rounded-2xl bg-white p-5 shadow-sm">
+          <h2 className="mb-2 font-semibold text-gray-800">Топ-5 категорий расходов за месяц</h2>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}>
+                {pieData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v) => [fmt(v), 'Сумма']} />
+              <Legend
+                formatter={(value, entry) => (
+                  <span className="text-xs text-gray-700">{value}: {fmt(entry.payload.value)}</span>
+                )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </section>
+      )}
     </div>
   )
 }

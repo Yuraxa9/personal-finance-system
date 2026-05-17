@@ -2,11 +2,12 @@ import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import PrivateRoute from './components/PrivateRoute'
 import AccountsPage from './pages/AccountsPage'
+import AnalyticsPage from './pages/AnalyticsPage'
 import CategoriesPage from './pages/CategoriesPage'
 import DashboardPage from './pages/DashboardPage'
-import TransactionsPage from './pages/TransactionsPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import TransactionsPage from './pages/TransactionsPage'
 import useAuthStore from './store/authStore'
 
 const ComingSoon = ({ page }) => (
@@ -65,7 +66,7 @@ function App() {
           path="/analytics"
           element={
             <PrivateRoute>
-              <ComingSoon page="Аналитика" />
+              <AnalyticsPage />
             </PrivateRoute>
           }
         />
