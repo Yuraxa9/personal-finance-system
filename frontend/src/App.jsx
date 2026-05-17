@@ -12,12 +12,6 @@ import RegisterPage from './pages/RegisterPage'
 import TransactionsPage from './pages/TransactionsPage'
 import useAuthStore from './store/authStore'
 
-const ComingSoon = ({ page }) => (
-  <div className="flex h-full items-center justify-center text-gray-400">
-    {page} — скоро будет
-  </div>
-)
-
 function App() {
   const loadUser = useAuthStore((s) => s.loadUser)
 

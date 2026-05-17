@@ -15,7 +15,17 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
-      parserOptions: { ecmaFeatures: { jsx: true } },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    settings: { react: { version: '18.2' } },
+    rules: {
+      'react/prop-types': 'off',
+      'no-unused-vars': 'warn',
+      'no-console': 'warn',
     },
   },
 ])
