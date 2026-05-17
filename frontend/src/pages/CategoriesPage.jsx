@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { createCategory, deleteCategory, getCategories } from '../api/categories'
 import Button from '../components/Button'
 import CategoryForm from '../components/CategoryForm'
+import ConfirmDialog from '../components/ConfirmDialog'
+import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 
 const TYPE_LABEL = { income: 'Доход', expense: 'Расход' }
@@ -13,6 +15,7 @@ export default function CategoriesPage() {
   const [activeTab, setActiveTab] = useState('expense')
   const [showModal, setShowModal] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmId, setConfirmId] = useState(null)
 
   async function load() {
     try {
@@ -33,12 +36,13 @@ export default function CategoriesPage() {
     load()
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Удалить категорию?')) return
-    setDeletingId(id)
+  async function confirmDelete() {
+    if (!confirmId) return
+    setDeletingId(confirmId)
+    setConfirmId(null)
     try {
-      await deleteCategory(id)
-      setCategories((prev) => prev.filter((c) => c.id !== id))
+      await deleteCategory(confirmId)
+      setCategories((prev) => prev.filter((c) => c.id !== confirmId))
     } catch {
       setError('Не удалось удалить категорию')
     } finally {
@@ -58,7 +62,6 @@ export default function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Категории</h1>
         <Button onClick={() => setShowModal(true)}>+ Добавить категорию</Button>
@@ -68,8 +71,7 @@ export default function CategoriesPage() {
         <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+      <div className="flex w-fit gap-1 rounded-xl bg-gray-100 p-1">
         {['expense', 'income'].map((tab) => (
           <button
             key={tab}
@@ -83,11 +85,14 @@ export default function CategoriesPage() {
         ))}
       </div>
 
-      {/* Category cards */}
       {filtered.length === 0 ? (
-        <p className="text-sm text-gray-400">
-          Нет категорий типа «{TYPE_LABEL[activeTab]}». Создайте первую!
-        </p>
+        <EmptyState
+          icon="🏷️"
+          title="Нет категорий"
+          message={`Нет категорий типа «${TYPE_LABEL[activeTab]}». Создайте первую!`}
+          actionText="Добавить категорию"
+          onAction={() => setShowModal(true)}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((cat) => (
@@ -117,7 +122,7 @@ export default function CategoriesPage() {
 
               {!cat.is_default && (
                 <button
-                  onClick={() => handleDelete(cat.id)}
+                  onClick={() => setConfirmId(cat.id)}
                   disabled={deletingId === cat.id}
                   className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
                   aria-label="Удалить"
@@ -132,7 +137,6 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Новая категория">
         <CategoryForm
           initialData={{ category_type: activeTab }}
@@ -140,6 +144,16 @@ export default function CategoriesPage() {
           onCancel={() => setShowModal(false)}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmId}
+        title="Удалить категорию?"
+        message="Транзакции с этой категорией сохранятся, но категория будет удалена."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmId(null)}
+      />
     </div>
   )
 }

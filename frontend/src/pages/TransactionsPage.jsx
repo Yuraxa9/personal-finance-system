@@ -8,6 +8,8 @@ import {
   updateTransaction,
 } from '../api/transactions'
 import Button from '../components/Button'
+import ConfirmDialog from '../components/ConfirmDialog'
+import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import TransactionForm from '../components/TransactionForm'
 import { formatCurrency, formatDateTime, formatTransactionType } from '../utils/formatters'
@@ -34,6 +36,7 @@ export default function TransactionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmTx, setConfirmTx] = useState(null)
 
   // load reference data once
   useEffect(() => {
@@ -87,11 +90,17 @@ export default function TransactionsPage() {
     load()
   }
 
-  async function handleDelete(tx) {
-    if (!window.confirm(`Удалить транзакцию${tx.description ? ` «${tx.description}»` : ''}?`)) return
-    setDeletingId(tx.id)
+  function handleDelete(tx) {
+    setConfirmTx(tx)
+  }
+
+  async function confirmDelete() {
+    if (!confirmTx) return
+    const txId = confirmTx.id
+    setDeletingId(txId)
+    setConfirmTx(null)
     try {
-      await deleteTransaction(tx.id)
+      await deleteTransaction(txId)
       load()
     } catch {
       setError('Не удалось удалить транзакцию')
@@ -163,7 +172,13 @@ export default function TransactionsPage() {
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
           </div>
         ) : transactions.length === 0 ? (
-          <p className="py-12 text-center text-sm text-gray-400">Транзакций не найдено</p>
+          <EmptyState
+            icon="💸"
+            title="Транзакций не найдено"
+            message="Измените фильтры или добавьте первую транзакцию!"
+            actionText="Добавить транзакцию"
+            onAction={openCreate}
+          />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -272,6 +287,16 @@ export default function TransactionsPage() {
           onCancel={closeModal}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmTx}
+        title="Удалить транзакцию?"
+        message={confirmTx?.description ? `«${confirmTx.description}»` : 'Это действие нельзя отменить.'}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmTx(null)}
+      />
     </div>
   )
 }

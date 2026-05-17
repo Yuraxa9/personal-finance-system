@@ -2,24 +2,20 @@ import { useEffect, useState } from 'react'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { getAccounts } from '../api/accounts'
 import { getCategories } from '../api/categories'
-import { getAnalytics, getTransactions } from '../api/transactions'
+import { getStats } from '../api/stats'
+import { getTransactions } from '../api/transactions'
 import StatCard from '../components/StatCard'
 import { formatAccountType, formatCurrency, formatDateShort, formatTransactionType } from '../utils/formatters'
+import useAuthStore from '../store/authStore'
 
 const TX_TYPE_COLOR = { income: 'text-green-600', expense: 'text-red-500', transfer: 'text-blue-500' }
 const FALLBACK_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6']
 
-function thisMonthRange() {
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
-  return { from, to }
-}
-
 export default function DashboardPage() {
+  const user = useAuthStore((s) => s.user)
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
-  const [analytics, setAnalytics] = useState(null)
+  const [stats, setStats] = useState(null)
   const [categoryMap, setCategoryMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -27,16 +23,15 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { from, to } = thisMonthRange()
-        const [accRes, txRes, analyticsRes, catRes] = await Promise.all([
+        const [accRes, txRes, statsRes, catRes] = await Promise.all([
           getAccounts(),
           getTransactions({}),
-          getAnalytics(from, to),
+          getStats(),
           getCategories(),
         ])
         setAccounts(accRes.data)
         setTransactions(txRes.data)
-        setAnalytics(analyticsRes.data)
+        setStats(statsRes.data)
         setCategoryMap(Object.fromEntries(catRes.data.map((c) => [c.id, c])))
       } catch {
         setError('Не удалось загрузить данные')
@@ -60,31 +55,48 @@ export default function DashboardPage() {
   }
 
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0)
-  const income = analytics ? Number(analytics.summary.total_income) : 0
-  const expense = analytics ? Number(analytics.summary.total_expense) : 0
+  const totalIncome = stats ? Number(stats.total_income) : 0
+  const totalExpense = stats ? Number(stats.total_expense) : 0
 
-  const pieData = (analytics?.by_category ?? [])
-    .filter((item) => {
-      if (!item.category_id) return false
-      return categoryMap[item.category_id]?.category_type === 'expense'
-    })
-    .sort((a, b) => Number(b.total_amount) - Number(a.total_amount))
+  const pieData = accounts
+    .flatMap(() => [])
+    .concat(
+      Object.values(
+        transactions
+          .filter((tx) => tx.transaction_type === 'expense' && tx.category_id)
+          .reduce((acc, tx) => {
+            const cat = categoryMap[tx.category_id]
+            if (!cat) return acc
+            if (!acc[tx.category_id]) {
+              acc[tx.category_id] = { name: cat.name, value: 0, color: cat.color }
+            }
+            acc[tx.category_id].value += Number(tx.amount)
+            return acc
+          }, {})
+      )
+    )
+    .sort((a, b) => b.value - a.value)
     .slice(0, 5)
-    .map((item, i) => ({
-      name: item.category_name,
-      value: Number(item.total_amount),
-      color: categoryMap[item.category_id]?.color ?? FALLBACK_COLORS[i],
-    }))
+    .map((d, i) => ({ ...d, color: d.color ?? FALLBACK_COLORS[i] }))
     .filter((d) => d.value > 0)
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-gray-900">Дашборд</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Добро пожаловать, {user?.full_name ?? ''}!
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          У вас {stats?.total_accounts ?? 0} {plural(stats?.total_accounts ?? 0, 'счёт', 'счёта', 'счетов')} и{' '}
+          {stats?.total_transactions ?? 0}{' '}
+          {plural(stats?.total_transactions ?? 0, 'транзакция', 'транзакции', 'транзакций')}
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard title="Общий баланс" value={formatCurrency(totalBalance)} icon="💰" color="blue" />
-        <StatCard title="Доходы за месяц" value={formatCurrency(income)} icon="📈" color="green" />
-        <StatCard title="Расходы за месяц" value={formatCurrency(expense)} icon="📉" color="red" />
+        <StatCard title="Всего доходов" value={formatCurrency(totalIncome)} icon="📈" color="green" />
+        <StatCard title="Всего расходов" value={formatCurrency(totalExpense)} icon="📉" color="red" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -133,7 +145,7 @@ export default function DashboardPage() {
 
       {pieData.length > 0 && (
         <section className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="mb-2 font-semibold text-gray-800">Топ-5 категорий расходов за месяц</h2>
+          <h2 className="mb-2 font-semibold text-gray-800">Топ-5 категорий расходов</h2>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}>
@@ -153,4 +165,12 @@ export default function DashboardPage() {
       )}
     </div>
   )
+}
+
+function plural(n, one, few, many) {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return one
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few
+  return many
 }

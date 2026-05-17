@@ -6,6 +6,8 @@ import {
   updateAccount,
 } from '../api/accounts'
 import AccountForm from '../components/AccountForm'
+import ConfirmDialog from '../components/ConfirmDialog'
+import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
 import { formatAccountType, formatCurrency } from '../utils/formatters'
 
@@ -13,6 +15,7 @@ const ACCOUNT_ICON = { cash: '💵', card: '💳', savings: '🏦' }
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState([])
+  const [confirmTarget, setConfirmTarget] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -80,15 +83,18 @@ export default function AccountsPage() {
   }
 
   async function handleDelete(account) {
-    const confirmed = window.confirm(`Удалить счёт «${account.name}»?`)
+    setConfirmTarget(account)
+  }
 
-    if (!confirmed) return
-
+  async function confirmDelete() {
+    if (!confirmTarget) return
     try {
-      await deleteAccount(account.id)
+      await deleteAccount(confirmTarget.id)
       await loadAccounts()
     } catch {
       setError('Не удалось удалить счёт')
+    } finally {
+      setConfirmTarget(null)
     }
   }
 
@@ -119,9 +125,13 @@ export default function AccountsPage() {
       )}
 
       {!loading && !error && accounts.length === 0 && (
-        <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400 shadow-sm">
-          Счетов пока нет
-        </div>
+        <EmptyState
+          icon="💳"
+          title="Счетов пока нет"
+          message="У вас пока нет счетов. Создайте первый!"
+          actionText="Добавить счёт"
+          onAction={openCreateModal}
+        />
       )}
 
       {!loading && !error && accounts.length > 0 && (
@@ -188,6 +198,16 @@ export default function AccountsPage() {
           onCancel={closeModal}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmTarget}
+        title={`Удалить счёт «${confirmTarget?.name}»?`}
+        message="Это действие нельзя отменить. Убедитесь, что у счёта нет транзакций."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   )
 }
