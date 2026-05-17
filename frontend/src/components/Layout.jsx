@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import Toast from './Toast'
 import useAuthStore from '../store/authStore'
 
 const NAV = [
@@ -7,6 +8,7 @@ const NAV = [
   { to: '/transactions', label: 'Транзакции', icon: '💸' },
   { to: '/categories', label: 'Категории', icon: '🏷️' },
   { to: '/analytics', label: 'Аналитика', icon: '📈' },
+  { to: '/profile', label: 'Профиль', icon: '👤' },
 ]
 
 export default function Layout({ children }) {
@@ -64,6 +66,9 @@ export default function Layout({ children }) {
         {/* Page content */}
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
+
+      {/* Global toast notifications */}
+      <Toast />
     </div>
   )
 }

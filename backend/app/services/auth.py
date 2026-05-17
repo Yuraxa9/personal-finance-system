@@ -55,3 +55,20 @@ async def authenticate_user(
     if not user or not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+async def update_user_profile(db: AsyncSession, user: User, full_name: str) -> User:
+    user.full_name = full_name
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def change_user_password(
+    db: AsyncSession, user: User, current_password: str, new_password: str
+) -> bool:
+    if not verify_password(current_password, user.hashed_password):
+        return False
+    user.hashed_password = hash_password(new_password)
+    await db.commit()
+    return True

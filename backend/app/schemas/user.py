@@ -28,3 +28,12 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: str | None = None
+
+
+class ProfileUpdate(BaseModel):
+    full_name: str
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str

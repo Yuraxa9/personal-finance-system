@@ -6,6 +6,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import CategoriesPage from './pages/CategoriesPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
+import ProfilePage from './pages/ProfilePage'
 import RegisterPage from './pages/RegisterPage'
 import TransactionsPage from './pages/TransactionsPage'
 import useAuthStore from './store/authStore'
@@ -67,6 +68,14 @@ function App() {
           element={
             <PrivateRoute>
               <AnalyticsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <ProfilePage />
             </PrivateRoute>
           }
         />
