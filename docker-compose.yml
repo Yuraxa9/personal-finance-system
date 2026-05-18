@@ -7,9 +7,11 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/finance
-      SECRET_KEY: super-secret-key-change-in-production
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      DEBUG: "false"
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      DEBUG: ${DEBUG:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +32,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:8000/api/v1
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
     depends_on:
       - backend
     volumes:
